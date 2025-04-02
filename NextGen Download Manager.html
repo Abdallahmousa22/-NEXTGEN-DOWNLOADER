@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NextGen Download Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+New:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #0a0a12;
+            color: #ffffff;
+        }
+        
+        .bg-panel {
+            background-color: #1a1a2e;
+        }
+        
+        .accent {
+            color: #ff2a6d;
+        }
+        
+        .primary {
+            color: #00ff9d;
+        }
+        
+        .progress {
+            background-color: #00f0ff;
+        }
+        
+        .progress-bg {
+            background-color: #1a1a2e;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1a2e;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #00f0ff;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00ff9d;
+        }
+        
+        /* Treeview styling */
+        .treeview {
+            background-color: #1a1a2e;
+            color: #00ff9d;
+        }
+        
+        .treeview-header {
+            background-color: #ff2a6d;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .treeview-row:hover {
+            background-color: #252540;
+        }
+        
+        /* Button animations */
+        .btn-hover:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 255, 157, 0.2);
+        }
+        
+        .btn-active:active {
+            transform: translateY(1px);
+        }
+        
+        /* Pulse animation */
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 py-6 flex-grow">
+        <!-- Title Section -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold mb-2 accent">
+                <i class="fas fa-bolt"></i> NEXTGEN DOWNLOADER
+            </h1>
+            <p class="text-lg primary">Ultimate High-Speed Download Manager</p>
+            <div class="mt-4 px-4 py-2 bg-panel rounded-lg inline-block">
+                <span id="speedInfo" class="text-sm primary">
+                    <i class="fas fa-tachometer-alt"></i> Max Speed: Not tested | 
+                    <i class="fas fa-microchip"></i> Optimal Threads: 4
+                </span>
+            </div>
+        </div>
+        
+        <!-- Input Section -->
+        <div class="bg-panel rounded-xl p-6 mb-6 shadow-lg">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                <!-- URL Input -->
+                <div class="md:col-span-10">
+                    <label class="block mb-1 primary">Download URL:</label>
+                    <div class="flex">
+                        <input type="text" id="urlInput" class="flex-grow bg-gray-800 text-white px-4 py-2 rounded-l focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter download URL">
+                        <button id="pasteBtn" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-r primary">
+                            <i class="fas fa-paste"></i> Paste
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Save Path -->
+                <div class="md:col-span-10">
+                    <label class="block mb-1 primary">Save Path:</label>
+                    <div class="flex">
+                        <input type="text" id="savePath" class="flex-grow bg-gray-800 text-white px-4 py-2 rounded-l focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Select save location">
+                        <button id="browseBtn" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-r primary">
+                            <i class="fas fa-folder-open"></i> Browse
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Threads -->
+                <div class="md:col-span-2">
+                    <label class="block mb-1 primary">Threads:</label>
+                    <div class="flex">
+                        <input type="number" id="threads" min="1" max="16" value="4" class="w-full bg-gray-800 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                
+                <!-- Auto Optimize -->
+                <div class="md:col-span-2 flex items-end">
+                    <button id="autoOptimize" class="w-full bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded primary">
+                        <i class="fas fa-magic"></i> Auto Optimize
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Progress Section -->
+        <div class="bg-panel rounded-xl p-6 mb-6 shadow-lg">
+            <div class="mb-4">
+                <p id="progressText" class="text-lg primary">Ready to download...</p>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="h-4 bg-gray-800 rounded-full mb-6 progress-bg">
+                <div id="progressBar" class="h-full rounded-full progress" style="width: 0%"></div>
+            </div>
+            
+            <!-- Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-gray-800 p-3 rounded-lg">
+                    <p class="text-xs text-gray-400">Speed</p>
+                    <p id="speed" class="text-lg primary">0 MB/s</p>
+                </div>
+                <div class="bg-gray-800 p-3 rounded-lg">
+                    <p class="text-xs text-gray-400">Time Remaining</p>
+                    <p id="timeRemaining" class="text-lg primary">--</p>
+                </div>
+                <div class="bg-gray-800 p-3 rounded-lg">
+                    <p class="text-xs text-gray-400">Downloaded</p>
+                    <p id="downloaded" class="text-lg primary">0 MB</p>
+                </div>
+                <div class="bg-gray-800 p-3 rounded-lg">
+                    <p class="text-xs text-gray-400">File Size</p>
+                    <p id="fileSize" class="text-lg primary">--</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tabs -->
+        <div class="flex border-b border-gray-700 mb-4">
+            <button id="historyTab" class="tab-active px-4 py-2 font-medium primary border-b-2 border-blue-500">Download History</button>
+            <button id="queueTab" class="px-4 py-2 font-medium text-gray-400">Download Queue</button>
+        </div>
+        
+        <!-- History Table -->
+        <div id="historyTable" class="bg-panel rounded-xl p-4 mb-6 shadow-lg overflow-x-auto">
+            <div class="treeview min-w-full">
+                <table class="min-w-full">
+                    <thead class="treeview-header">
+                        <tr>
+                            <th class="px-4 py-2 text-center">Date/Time</th>
+                            <th class="px-4 py-2">Filename</th>
+                            <th class="px-4 py-2">URL</th>
+                            <th class="px-4 py-2 text-center">Size</th>
+                            <th class="px-4 py-2 text-center">Speed</th>
+                            <th class="px-4 py-2 text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody" class="divide-y divide-gray-700">
+                        <!-- Sample history item -->
+                        <tr class="treeview-row hover:bg-gray-800 cursor-pointer">
+                            <td class="px-4 py-2 text-center">2023-07-15 14:30</td>
+                            <td class="px-4 py-2">sample-file.zip</td>
+                            <td class="px-4 py-2 max-w-xs truncate">https://example.com/files/sample-file.zip</td>
+                            <td class="px-4 py-2 text-center">45.2 MB</td>
+                            <td class="px-4 py-2 text-center">5.7 MB/s</td>
+                            <td class="px-4 py-2 text-center text-green-500">Completed</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Queue Table (Hidden by default) -->
+        <div id="queueTable" class="bg-panel rounded-xl p-4 mb-6 shadow-lg overflow-x-auto hidden">
+            <div class="treeview min-w-full">
+                <table class="min-w-full">
+                    <thead class="treeview-header">
+                        <tr>
+                            <th class="px-4 py-2">Filename</th>
+                            <th class="px-4 py-2 text-center">Size</th>
+                            <th class="px-4 py-2 text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="queueBody" class="divide-y divide-gray-700">
+                        <!-- Queue items will be added here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Control Buttons -->
+        <div class="flex flex-wrap gap-2 justify-center mb-8">
+            <button id="downloadBtn" class="px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg font-bold primary btn-hover btn-active">
+                <i class="fas fa-download"></i> Start Download
+            </button>
+            <button id="pauseBtn" class="px-6 py-3 bg-yellow-600 hover:bg-yellow-700 rounded-lg font-bold text-white btn-hover btn-active hidden">
+                <i class="fas fa-pause"></i> Pause
+            </button>
+            <button id="stopBtn" class="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-bold text-white btn-hover btn-active" disabled>
+                <i class="fas fa-stop"></i> Stop
+            </button>
+            <button id="settingsBtn" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold primary btn-hover btn-active">
+                <i class="fas fa-cog"></i> Settings
+            </button>
+            <button id="clearHistoryBtn" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-bold primary btn-hover btn-active">
+                <i class="fas fa-trash"></i> Clear History
+            </button>
+            <button id="speedTestBtn" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg font-bold primary btn-hover btn-active">
+                <i class="fas fa-tachometer-alt"></i> Test Speed
+            </button>
+            <button id="contactBtn" class="px-6 py-3 bg-pink-600 hover:bg-pink-700 rounded-lg font-bold primary btn-hover btn-active">
+                <i class="fas fa-envelope"></i> Contact Us
+            </button>
+            <button id="updateBtn" class="px-6 py-3 bg-orange-600 hover:bg-orange-700 rounded-lg font-bold primary btn-hover btn-active">
+                <i class="fas fa-sync-alt"></i> Check Updates
+            </button>
+        </div>
+    </div>
+    
+    <!-- Status Bar -->
+    <div class="bg-gray-900 py-2 px-4 text-sm text-gray-300 flex justify-between items-center">
+        <span id="statusText">Ready</span>
+        <span class="text-gray-500">© ABDALLAH AHMED MUSA</span>
+    </div>
+    
+    <!-- Support Button -->
+    <div class="fixed bottom-4 right-4">
+        <button id="supportBtn" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-full font-bold text-white shadow-lg btn-hover btn-active pulse">
+            <i class="fas fa-heart"></i> Support on Patreon
+        </button>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-gray-800 rounded-lg p-6 w-full max-w-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold primary">Settings</h3>
+                <button id="closeSettings" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block mb-1 primary">Default Save Path:</label>
+                    <input type="text" id="defaultSavePath" class="w-full bg-gray-700 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" value="C:\Downloads">
+                </div>
+                
+                <div>
+                    <label class="block mb-1 primary">Max Threads (1-16):</label>
+                    <input type="number" id="maxThreads" min="1" max="16" class="w-full bg-gray-700 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" value="8">
+                </div>
+                
+                <div class="flex items-center">
+                    <input type="checkbox" id="autoPaste" class="w-4 h-4 text-blue-600 bg-gray-700 rounded focus:ring-blue-500">
+                    <label for="autoPaste" class="ml-2 primary">Auto-paste URLs from clipboard</label>
+                </div>
+                
+                <div class="flex items-center">
+                    <input type="checkbox" id="autoSpeed" class="w-4 h-4 text-blue-600 bg-gray-700 rounded focus:ring-blue-500">
+                    <label for="autoSpeed" class="ml-2 primary">Auto-optimize speed settings</label>
+                </div>
+                
+                <div class="flex items-center">
+                    <input type="checkbox" id="saveHistory" class="w-4 h-4 text-blue-600 bg-gray-700 rounded focus:ring-blue-500" checked>
+                    <label for="saveHistory" class="ml-2 primary">Save download history</label>
+                </div>
+                
+                <div class="flex items-center">
+                    <input type="checkbox" id="saveQueue" class="w-4 h-4 text-blue-600 bg-gray-700 rounded focus:ring-blue-500" checked>
+                    <label for="saveQueue" class="ml-2 primary">Save download queue between sessions</label>
+                </div>
+                
+                <div class="flex items-center">
+                    <input type="checkbox" id="resumeDownloads" class="w-4 h-4 text-blue-600 bg-gray-700 rounded focus:ring-blue-500" checked>
+                    <label for="resumeDownloads" class="ml-2 primary">Resume interrupted downloads</label>
+                </div>
+                
+                <div class="pt-4">
+                    <button id="saveSettings" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-bold primary">
+                        <i class="fas fa-save"></i> Save Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Contact Modal -->
+    <div id="contactModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-gray-800 rounded-lg p-6 w-full max-w-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold primary">Connect with Us!</h3>
+                <button id="closeContact" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="bg-gray-700 p-4 rounded-lg">
+                    <div class="flex items-center mb-2">
+                        <i class="fab fa-facebook text-blue-400 mr-2"></i>
+                        <span class="primary">Facebook Profile:</span>
+                        <a href="https://www.facebook.com/profile.php?id=100006823530421" class="ml-2 text-blue-400 hover:underline" target="_blank">my profile account</a>
+                    </div>
+                    
+                    <div class="flex items-center mb-2">
+                        <i class="fab fa-facebook text-blue-400 mr-2"></i>
+                        <span class="primary">Facebook Group:</span>
+                        <a href="https://www.facebook.com/groups/1114373303231687" class="ml-2 text-blue-400 hover:underline" target="_blank">my group</a>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <i class="fab fa-youtube text-red-400 mr-2"></i>
+                        <span class="primary">YouTube Channel:</span>
+                        <a href="https://www.youtube.com/channel/UC__QuilseLBrCWYYwxtzl2Q" class="ml-2 text-red-400 hover:underline" target="_blank">my youtube channel</a>
+                    </div>
+                </div>
+                
+                <div>
+                    <button id="closeContactBtn" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-bold primary">
+                        <i class="fas fa-check"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Speed Test Modal -->
+    <div id="speedTestModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-gray-800 rounded-lg p-6 w-full max-w-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold primary">Internet Speed Test</h3>
+                <button id="closeSpeedTest" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="text-center">
+                    <i class="fas fa-tachometer-alt text-4xl primary mb-4 pulse"></i>
+                    <p id="speedTestStatus" class="primary">Testing internet speed... Please wait</p>
+                    
+                    <div class="grid grid-cols-2 gap-4 mt-6">
+                        <div class="bg-gray-700 p-3 rounded-lg">
+                            <p class="text-xs text-gray-400">Download Speed</p>
+                            <p id="downloadSpeed" class="text-2xl primary">-- Mbps</p>
+                        </div>
+                        <div class="bg-gray-700 p-3 rounded-lg">
+                            <p class="text-xs text-gray-400">Upload Speed</p>
+                            <p id="uploadSpeed" class="text-2xl primary">-- Mbps</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="pt-4">
+                    <button id="closeSpeedTestBtn" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-bold primary">
+                        <i class="fas fa-check"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Download Complete Modal -->
+    <div id="completeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-gray-800 rounded-lg p-6 w-full max-w-lg">
+            <div class="flex justify-center mb-4">
+                <div class="bg-green-500 p-3 rounded-full">
+                    <i class="fas fa-check-circle text-white text-3xl"></i>
+                </div>
+            </div>
+            
+            <h3 class="text-xl font-bold text-center primary mb-6">Download Completed Successfully!</h3>
+            
+            <div class="bg-gray-700 p-4 rounded-lg mb-6">
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="col-span-1">
+                        <p class="text-sm text-gray-400">Filename:</p>
+                        <p class="text-sm text-gray-400">File Size:</p>
+                        <p class="text-sm text-gray-400">Speed:</p>
+                        <p class="text-sm text-gray-400">Saved in:</p>
+                    </div>
+                    <div class="col-span-2">
+                        <p id="completeFilename" class="text-sm primary truncate">sample-file.zip</p>
+                        <p id="completeSize" class="text-sm primary">45.2 MB</p>
+                        <p id="completeSpeed" class="text-sm primary">5.7 MB/s</p>
+                        <p id="completePath" class="text-sm primary truncate">C:\Downloads</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3">
+                <button id="openFileBtn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-bold primary">
+                    <i class="fas fa-play"></i> Open File
+                </button>
+                <button id="openFolderBtn" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-bold primary">
+                    <i class="fas fa-folder-open"></i> Open Folder
+                </button>
+                <button id="copyPathBtn" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded font-bold primary">
+                    <i class="fas fa-copy"></i> Copy Path
+                </button>
+                <button id="closeCompleteBtn" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded font-bold primary">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const urlInput = document.getElementById('urlInput');
+        const savePath = document.getElementById('savePath');
+        const threads = document.getElementById('threads');
+        const autoOptimize = document.getElementById('autoOptimize');
+        const progressText = document.getElementById('progressText');
+        const progressBar = document.getElementById('progressBar');
+        const speed = document.getElementById('speed');
+        const timeRemaining = document.getElementById('timeRemaining');
+        const downloaded = document.getElementById('downloaded');
+        const fileSize = document.getElementById('fileSize');
+        const historyTab = document.getElementById('historyTab');
+        const queueTab = document.getElementById('queueTab');
+        const historyTable = document.getElementById('historyTable');
+        const queueTable = document.getElementById('queueTable');
+        const historyBody = document.getElementById('historyBody');
+        const queueBody = document.getElementById('queueBody');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+        const speedTestBtn = document.getElementById('speedTestBtn');
+        const contactBtn = document.getElementById('contactBtn');
+        const updateBtn = document.getElementById('updateBtn');
+        const pasteBtn = document.getElementById('pasteBtn');
+        const browseBtn = document.getElementById('browseBtn');
+        const supportBtn = document.getElementById('supportBtn');
+        const statusText = document.getElementById('statusText');
+        const speedInfo = document.getElementById('speedInfo');
+        
+        // Modal elements
+        const settingsModal = document.getElementById('settingsModal');
+        const closeSettings = document.getElementById('closeSettings');
+        const defaultSavePath = document.getElementById('defaultSavePath');
+        const maxThreads = document.getElementById('maxThreads');
+        const autoPaste = document.getElementById('autoPaste');
+        const autoSpeed = document.getElementById('autoSpeed');
+        const saveHistory = document.getElementById('saveHistory');
+        const saveQueue = document.getElementById('saveQueue');
+        const resumeDownloads = document.getElementById('resumeDownloads');
+        const saveSettings = document.getElementById('saveSettings');
+        
+        const contactModal = document.getElementById('contactModal');
+        const closeContact = document.getElementById('closeContact');
+        const closeContactBtn = document.getElementById('closeContactBtn');
+        
+        const speedTestModal = document.getElementById('speedTestModal');
+        const closeSpeedTest = document.getElementById('closeSpeedTest');
+        const closeSpeedTestBtn = document.getElementById('closeSpeedTestBtn');
+        const speedTestStatus = document.getElementById('speedTestStatus');
+        const downloadSpeed = document.getElementById('downloadSpeed');
+        const uploadSpeed = document.getElementById('uploadSpeed');
+        
+        const completeModal = document.getElementById('completeModal');
+        const completeFilename = document.getElementById('completeFilename');
+        const completeSize = document.getElementById('completeSize');
+        const completeSpeed = document.getElementById('completeSpeed');
+        const completePath = document.getElementById('completePath');
+        const openFileBtn = document.getElementById('openFileBtn');
+        const openFolderBtn = document.getElementById('openFolderBtn');
+        const copyPathBtn = document.getElementById('copyPathBtn');
+        const closeCompleteBtn = document.getElementById('closeCompleteBtn');
+        
+        // App state
+        let isDownloading = false;
+        let isPaused = false;
+        let maxSpeed = 0;
+        let optimalThreads = 4;
+        let downloadHistory = [];
+        let downloadQueue = [];
+        
+        // Event Listeners
+        downloadBtn.addEventListener('click', toggleDownload);
+        pauseBtn.addEventListener('click', togglePause);
+        stopBtn.addEventListener('click', stopDownload);
+        settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
+        clearHistoryBtn.addEventListener('click', clearHistory);
+        speedTestBtn.addEventListener('click', showSpeedTest);
+        contactBtn.addEventListener('click', () => contactModal.classList.remove('hidden'));
+        updateBtn.addEventListener('click', checkForUpdates);
+        pasteBtn.addEventListener('click', pasteFromClipboard);
+        browseBtn.addEventListener('click', browseForSavePath);
+        supportBtn.addEventListener('click', () => window.open('https://www.patreon.com/Abdallahmusa'));
+        
+        // Tab switching
+        historyTab.addEventListener('click', () => {
+            historyTable.classList.remove('hidden');
+            queueTable.classList.add('hidden');
+            historyTab.classList.add('primary', 'border-b-2', 'border-blue-500');
+            historyTab.classList.remove('text-gray-400');
+            queueTab.classList.add('text-gray-400');
+            queueTab.classList.remove('primary', 'border-b-2', 'border-blue-500');
+        });
+        
+        queueTab.addEventListener('click', () => {
+            queueTable.classList.remove('hidden');
+            historyTable.classList.add('hidden');
+            queueTab.classList.add('primary', 'border-b-2', 'border-blue-500');
+            queueTab.classList.remove('text-gray-400');
+            historyTab.classList.add('text-gray-400');
+            historyTab.classList.remove('primary', 'border-b-2', 'border-blue-500');
+        });
+        
+        // Modal close buttons
+        closeSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
+        closeContact.addEventListener('click', () => contactModal.classList.add('hidden'));
+        closeContactBtn.addEventListener('click', () => contactModal.classList.add('hidden'));
+        closeSpeedTest.addEventListener('click', () => speedTestModal.classList.add('hidden'));
+        closeSpeedTestBtn.addEventListener('click', () => speedTestModal.classList.add('hidden'));
+        closeCompleteBtn.addEventListener('click', () => completeModal.classList.add('hidden'));
+        
+        // Settings
+        saveSettings.addEventListener('click', saveAppSettings);
+        
+        // Download complete modal buttons
+        openFileBtn.addEventListener('click', () => {
+            alert('This would open the file in a real application');
+            completeModal.classList.add('hidden');
+        });
+        
+        openFolderBtn.addEventListener('click', () => {
+            alert('This would open the folder containing the file in a real application');
+            completeModal.classList.add('hidden');
+        });
+        
+        copyPathBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(completePath.textContent)
+                .then(() => {
+                    statusText.textContent = 'File path copied to clipboard!';
+                    completeModal.classList.add('hidden');
+                });
+        });
+        
+        // Auto-optimize button
+        autoOptimize.addEventListener('click', () => {
+            if (maxSpeed === 0) {
+                showSpeedTest();
+            } else {
+                threads.value = optimalThreads;
+                updateStatus(`Optimized settings: ${optimalThreads} threads for max speed`);
+            }
+        });
+        
+        // Initialize
+        function init() {
+            // Set default save path
+            savePath.value = 'C:\\Downloads';
+            loadHistory();
+        }
+        
+        // Toggle download state
+        function toggleDownload() {
+            if (isDownloading) {
+                // In a real app, this would pause the download
+                isPaused = true;
+                downloadBtn.classList.add('hidden');
+                pauseBtn.classList.remove('hidden');
+                progressText.textContent = 'Download paused...';
+                updateStatus('Download paused');
+            } else {
+                startDownload();
+            }
+        }
+        
+        // Toggle pause state
+        function togglePause() {
+            if (isPaused) {
+                // In a real app, this would resume the download
+                isPaused = false;
+                pauseBtn.textContent = 'Pause';
+                progressText.textContent = 'Download in progress...';
+                updateStatus('Download resumed');
+            } else {
+                // Pause download
+                isPaused = true;
+                pauseBtn.textContent = 'Resume';
+                progressText.textContent = 'Download paused...';
+                updateStatus('Download paused');
+            }
+        }
+        
+        // Stop download
+        function stopDownload() {
+            if (isDownloading) {
+                // In a real app, this would stop the download
+                isDownloading = false;
+                isPaused = false;
+                downloadBtn.classList.remove('hidden');
+                pauseBtn.classList.add('hidden');
+                stopBtn.disabled = true;
+                progressText.textContent = 'Download stopped by user';
+                progressBar.style.width = '0%';
+                updateStatus('Download stopped');
+                alert('Download stopped successfully');
+            }
+        }
+        
+        // Start download
+        function startDownload() {
+            const url = urlInput.value.trim();
+            const path = savePath.value.trim();
+            const threadCount = threads.value;
+            
+            if (!url) {
+                alert('Please enter a download URL');
+                return;
+            }
+            
+            if (!path) {
+                alert('Please select a save path');
+                return;
+            }
+            
+            if (threadCount < 1 || threadCount > 16) {
+                alert('Please enter a valid number of threads (1-16)');
+                return;
+            }
+            
+            // In a real app, this would start the actual download
+            isDownloading = true;
+            downloadBtn.classList.add('hidden');
+            pauseBtn.classList.remove('hidden');
+            stopBtn.disabled = false;
+            
+            // Simulate download progress
+            progressText.textContent = 'Download in progress...';
+            updateStatus('Downloading ' + getFilenameFromUrl(url));
+            
+            // Simulate progress (for demo purposes)
+            let progress = 0;
+            const fileSizeMB = Math.random() * 100 + 10; // Random file size between 10-110MB
+            fileSize.textContent = fileSizeMB.toFixed(2) + ' MB';
+            
+            const interval = setInterval(() => {
+                if (!isDownloading || isPaused) {
+                    clearInterval(interval);
+                    return;
+                }
+                
+                progress += Math.random() * 5;
+                if (progress > 100) progress = 100;
+                
+                progressBar.style.width = progress + '%';
+                downloaded.textContent = (fileSizeMB * progress / 100).toFixed(2) + ' MB';
+                
+                // Random speed between 1-15 MB/s
+                const currentSpeed = 1 + Math.random() * 14;
+                speed.textContent = currentSpeed.toFixed(2) + ' MB/s';
+                
+                // Calculate remaining time
+                const remaining = ((100 - progress) / progress * (fileSizeMB * progress / 100)) / currentSpeed;
+                timeRemaining.textContent = remaining.toFixed(1) + 's';
+                
+                // Update max speed
+                if (currentSpeed > maxSpeed) {
+                    maxSpeed = currentSpeed;
+                    optimalThreads = Math.min(16, Math.max(4, Math.floor(maxSpeed / 2)));
+                    speedInfo.textContent = `Max Speed: ${maxSpeed.toFixed(2)} MB/s | Optimal Threads: ${optimalThreads}`;
+                }
+                
+                // When download completes
+                if (progress >= 100) {
+                    isDownloading = false;
+                    downloadBtn.classList.remove('hidden');
+                    pauseBtn.classList.add('hidden');
+                    stopBtn.disabled = true;
+                    
+                    // Add to history
+                    addToHistory({
+                        url: url,
+                        filename: getFilenameFromUrl(url),
+                        size: fileSizeMB.toFixed(2) + ' MB',
+                        speed: currentSpeed.toFixed(2) + ' MB/s',
+                        status: 'Completed',
+                        date: new Date().toLocaleString()
+                    });
+                    
+                    // Show download complete modal
+                    showDownloadComplete(url, path, fileSizeMB, currentSpeed);
+                }
+            }, 200);
+        }
+        
+        // Add to history
+        function addToHistory(item) {
+            downloadHistory.unshift(item);
+            if (downloadHistory.length > 100) {
+                downloadHistory.pop();
+            }
+            
+            const row = document.createElement('tr');
+            row.className = 'treeview-row hover:bg-gray-800 cursor-pointer';
+            row.innerHTML = `
+                <td class="px-4 py-2 text-center">${item.date}</td>
+                <td class="px-4 py-2">${item.filename}</td>
+                <td class="px-4 py-2 max-w-xs truncate">${item.url}</td>
+                <td class="px-4 py-2 text-center">${item.size}</td>
+                <td class="px-4 py-2 text-center">${item.speed}</td>
+                <td class="px-4 py-2 text-center text-green-500">${item.status}</td>
+            `;
+            
+            if (historyBody.firstChild) {
+                historyBody.insertBefore(row, historyBody.firstChild);
+            } else {
+                historyBody.appendChild(row);
+            }
+        }
+        
+        // Load saved history
+        function loadHistory() {
+            // In a real app, this would load from localStorage or a database
+            const sampleHistory = [
+                {
+                    date: '2023-07-15 14:30',
+                    url: 'https://example.com/files/sample-file.zip',
+                    filename: 'sample-file.zip',
+                    size: '45.2 MB',
+                    speed: '5.7 MB/s',
+                    status: 'Completed'
+                },
+                {
+                    date: '2023-07-14 09:15',
+                    url: 'https://example.com/files/document.pdf',
+                    filename: 'document.pdf',
+                    size: '12.8 MB',
+                    speed: '3.2 MB/s',
+                    status: 'Completed'
+                },
+                {
+                    date: '2023-07-12 16:45',
+                    url: 'https://example.com/files/image.jpg',
+                    filename: 'image.jpg',
+                    size: '8.5 MB',
+                    speed: 'N/A',
+                    status: 'Failed'
+                }
+            ];
+            
+            downloadHistory = sampleHistory;
+            sampleHistory.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = 'treeview-row hover:bg-gray-800 cursor-pointer';
+                
+                // Determine status color
+                let statusColor = 'text-green-500';
+                if (item.status === 'Failed') {
+                    statusColor = 'text-red-500';
+                } else if (item.status === 'Canceled') {
+                    statusColor = 'text-yellow-500';
+                }
+                
+                row.innerHTML = `
+                    <td class="px-4 py-2 text-center">${item.date}</td>
+                    <td class="px-4 py-2">${item.filename}</td>
+                    <td class="px-4 py-2 max-w-xs truncate">${item.url}</td>
+                    <td class="px-4 py-2 text-center">${item.size}</td>
+                    <td class="px-4 py-2 text-center">${item.speed}</td>
+                    <td class="px-4 py-2 text-center ${statusColor}">${item.status}</td>
+                `;
+                historyBody.appendChild(row);
+            });
+        }
+        
+        // Clear history
+        function clearHistory() {
+            if (confirm('Are you sure you want to clear all download history?')) {
+                downloadHistory = [];
+                historyBody.innerHTML = '';
+                updateStatus('Download history cleared');
+            }
+        }
+        
+        // Show speed test
+        function showSpeedTest() {
+            speedTestModal.classList.remove('hidden');
+            speedTestStatus.textContent = 'Testing internet speed... Please wait';
+            downloadSpeed.textContent = '-- Mbps';
+            uploadSpeed.textContent = '-- Mbps';
+            
+            // Simulate speed test (in a real app this would use WebRTC or similar)
+            setTimeout(() => {
+                speedTestStatus.textContent = 'Measuring download speed...';
+                
+                setTimeout(() => {
+                    const dlSpeed = 25 + Math.random() * 75; // Random between 25-100 Mbps
+                    downloadSpeed.textContent = dlSpeed.toFixed(2) + ' Mbps';
+                    speedTestStatus.textContent = 'Measuring upload speed...';
+                    
+                    setTimeout(() => {
+                        const ulSpeed = 5 + Math.random() * 20; // Random between 5-25 Mbps
+                        uploadSpeed.textContent = ulSpeed.toFixed(2) + ' Mbps';
+                        speedTestStatus.textContent = 'Speed test completed!';
+                        
+                        // Update speed info
+                        maxSpeed = dlSpeed / 8; // Convert to MB/s
+                        optimalThreads = Math.min(16, Math.max(4, Math.floor(maxSpeed / 2)));
+                        speedInfo.textContent = `Max Speed: ${maxSpeed.toFixed(2)} MB/s | Optimal Threads: ${optimalThreads}`;
+                        
+                        if (autoSpeed.checked) {
+                            threads.value = optimalThreads;
+                        }
+                    }, 1500);
+                }, 1500);
+            }, 500);
+        }
+        
+        // Check for updates
+        function checkForUpdates() {
+            updateStatus('Checking for updates...');
+            
+            // Simulate update check
+            setTimeout(() => {
+                alert('You are using the latest version');
+                updateStatus('No updates available');
+            }, 1000);
+        }
+        
+        // Paste from clipboard
+        function pasteFromClipboard() {
+            navigator.clipboard.readText()
+                .then(text => {
+                    urlInput.value = text;
+                    updateStatus('URL pasted from clipboard!');
+                })
+                .catch(err => {
+                    console.error('Failed to read clipboard contents: ', err);
+                    alert('Could not access clipboard. Please paste manually.');
+                });
+        }
+        
+        // Browse for save path
+        function browseForSavePath() {
+            // In a real electron app, this would open a file dialog
+            savePath.value = 'C:\\Downloads\\' + getFilenameFromUrl(urlInput.value) || 'file.zip';
+            updateStatus('Save path selected: ' + savePath.value);
+        }
+        
+        // Update status
+        function updateStatus(message, isError = false) {
+            statusText.textContent = message;
+            if (isError) {
+                statusText.style.color = '#ff2a6d';
+            } else {
+                statusText.style.color = '#00ff9d';
+            }
+        }
+        
+        // Save app settings
+        function saveAppSettings() {
+            // In a real app, this would save to localStorage or a config file
+            updateStatus('Settings saved successfully');
+            settingsModal.classList.add('hidden');
+        }
+        
+        // Show download complete modal
+        function showDownloadComplete(url, path, sizeMB, speedMB) {
+            completeFilename.textContent = getFilenameFromUrl(url);
+            completeSize.textContent = sizeMB.toFixed(2) + ' MB';
+            completeSpeed.textContent = speedMB.toFixed(2) + ' MB/s';
+            completePath.textContent = path;
+            completeModal.classList.remove('hidden');
+        }
+        
+        // Helper function to extract filename from URL
+        function getFilenameFromUrl(url) {
+            try {
+                const urlObj = new URL(url);
+                return urlObj.pathname.split('/').pop() || 'file.bin';
+            } catch {
+                return url.split('/').pop() || 'file.bin';
+            }
+        }
+        
+        // Initialize the app
+        init();
+    </script>
+</body>
+</html>
